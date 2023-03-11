@@ -8,7 +8,6 @@ fn main() -> anyhow::Result<()> {
     // You can use print statements as follows for debugging, they'll be visible when running tests.
     println!("Logs from your program will appear here!");
 
-    // Uncomment this block to pass the first stage
     let listener = TcpListener::bind("127.0.0.1:6379").unwrap();
 
     for stream in listener.incoming() {
@@ -16,15 +15,15 @@ fn main() -> anyhow::Result<()> {
             Ok(mut stream) => {
                 println!("accepted new connection");
 
-                let mut buf = [0; 256];
                 loop {
+                    let mut buf = [0; 1024];
                     stream.read(&mut buf)?;
                     print!("server receive: ");
                     print_buffer(&buf);
 
                     match stream.write_all("+PONG\r\n".as_bytes()) {
                         Ok(_) => println!("response succeeded"),
-                        Err(_) => println!("response failed"),
+                        Err(e) => println!("response failed: {}", e),
                     }
                 }
             }
@@ -38,12 +37,21 @@ fn main() -> anyhow::Result<()> {
 }
 
 fn print_buffer(buf: &[u8]) {
-    for s in buf.windows(2) {
-        if s[0] == b'\r' && s[1] == b'\n' {
-            break;
+    let mut result = Vec::<char>::with_capacity(buf.len());
+    let mut iter = buf.windows(2).into_iter();
+    loop {
+        match iter.next() {
+            Some(s) => {
+                if s[0] == b'\r' && s[1] == b'\n' {
+                    result.extend(['[', 'C', 'R', 'L', 'F', ']']);
+                    iter.next();
+                } else {
+                    result.push(char::try_from(s[0]).unwrap_or('.'));
+                }
+            }
+            None => break,
         }
-
-        print!("{}", char::try_from(s[0]).unwrap_or('.'))
     }
-    println!()
+
+    println!("{}", result.into_iter().collect::<String>());
 }
