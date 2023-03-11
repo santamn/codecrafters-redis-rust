@@ -1,7 +1,10 @@
 // Uncomment this block to pass the first stage
-use std::net::TcpListener;
+use std::{
+    io::{Read, Write},
+    net::TcpListener,
+};
 
-fn main() {
+fn main() -> anyhow::Result<()> {
     // You can use print statements as follows for debugging, they'll be visible when running tests.
     println!("Logs from your program will appear here!");
 
@@ -10,12 +13,22 @@ fn main() {
 
     for stream in listener.incoming() {
         match stream {
-            Ok(_stream) => {
+            Ok(mut stream) => {
                 println!("accepted new connection");
+
+                let mut buf = String::new();
+                stream.read_to_string(&mut buf)?;
+                println!("server receive {}", buf);
+                match stream.write_all("+PONG\r\n".as_bytes()) {
+                    Ok(_) => println!("response successed!"),
+                    Err(_) => println!("response failed"),
+                }
             }
             Err(e) => {
                 println!("error: {}", e);
             }
         }
     }
+
+    Ok(())
 }
