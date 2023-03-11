@@ -16,12 +16,16 @@ fn main() -> anyhow::Result<()> {
             Ok(mut stream) => {
                 println!("accepted new connection");
 
-                let mut buf = [0; 100];
-                stream.read(&mut buf)?;
-                println!("server receive {:?}", buf);
-                match stream.write_all("+PONG\r\n".as_bytes()) {
-                    Ok(_) => println!("response successed!"),
-                    Err(_) => println!("response failed"),
+                let mut buf = [0; 256];
+                loop {
+                    stream.read(&mut buf)?;
+                    print!("server receive: ");
+                    print_buffer(&buf);
+
+                    match stream.write_all("+PONG\r\n".as_bytes()) {
+                        Ok(_) => println!("response succeeded"),
+                        Err(_) => println!("response failed"),
+                    }
                 }
             }
             Err(e) => {
@@ -31,4 +35,15 @@ fn main() -> anyhow::Result<()> {
     }
 
     Ok(())
+}
+
+fn print_buffer(buf: &[u8]) {
+    for s in buf.windows(2) {
+        if s[0] == b'\r' && s[1] == b'\n' {
+            break;
+        }
+
+        print!("{}", char::try_from(s[0]).unwrap_or('.'))
+    }
+    println!()
 }
