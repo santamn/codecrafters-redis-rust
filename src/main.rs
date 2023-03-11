@@ -16,9 +16,9 @@ fn main() -> anyhow::Result<()> {
             Ok(mut stream) => {
                 println!("accepted new connection");
 
-                let mut buf = String::new();
-                stream.read_to_string(&mut buf)?;
-                println!("server receive {}", buf);
+                let mut buf = [0; 100];
+                stream.read(&mut buf)?;
+                println!("server receive {:?}", buf);
                 match stream.write_all("+PONG\r\n".as_bytes()) {
                     Ok(_) => println!("response successed!"),
                     Err(_) => println!("response failed"),
